@@ -21,6 +21,7 @@
 	onMount(async () => {
 		// Dynamic import keeps Leaflet out of the SSR bundle — it touches `window`.
 		L = (await import('leaflet')).default;
+		delete L.Icon.Default.prototype._getIconUrl;
 
 		// Leaflet's default marker icons are referenced via CSS-relative URLs that
 		// break under bundlers. Re-point them at the Vite-managed asset URLs.
