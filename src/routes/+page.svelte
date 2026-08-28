@@ -1,6 +1,7 @@
 <script lang="ts">
 	import AddressSearch from '$lib/components/AddressSearch.svelte';
 	import LeafletMap from '$lib/components/LeafletMap.svelte';
+	import type { DistanceKm } from '$lib/components/DistanceControl.svelte';
 
 	type Hit = {
 		place_id: number;
@@ -12,6 +13,9 @@
 
 	let selected = $state<Hit | null>(null);
 	let view = $state({ lat: 20, lon: 0, zoom: 2 });
+	// Lifted here so the future "things within this radius" query can read it
+	// without having to dig into the map component.
+	let distance = $state<DistanceKm>(5);
 
 	function onSelect(hit: Hit) {
 		selected = hit;
@@ -36,10 +40,17 @@
 	{#if selected}
 		<p class="text-sm text-slate-600">
 			Showing: <span class="font-medium text-slate-900">{selected.display_name}</span>
+			<span class="ml-2 text-slate-500">· Radius: {distance} KM</span>
 		</p>
 	{:else}
 		<p class="text-sm text-slate-500">No location selected yet.</p>
 	{/if}
 
-	<LeafletMap lat={view.lat} lon={view.lon} zoom={view.zoom} />
+	<LeafletMap
+		lat={view.lat}
+		lon={view.lon}
+		zoom={view.zoom}
+		{distance}
+		onDistanceChange={(next) => (distance = next)}
+	/>
 </main>

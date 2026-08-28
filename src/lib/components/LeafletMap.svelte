@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import 'leaflet/dist/leaflet.css';
+	import DistanceControl, { type DistanceKm } from './DistanceControl.svelte';
 
 	type Props = {
 		lat: number;
@@ -8,13 +9,18 @@
 		zoom?: number;
 		/** Optional aria-label for the map container. */
 		label?: string;
+		/** Selected radius, in kilometres. */
+		distance: DistanceKm;
+		/** Notified when the user picks a different distance. */
+		onDistanceChange: (next: DistanceKm) => void;
 	};
 
-	let { lat, lon, zoom = 15, label = 'Map' }: Props = $props();
+	let { lat, lon, zoom = 15, label = 'Map', distance, onDistanceChange }: Props = $props();
 
 	let containerEl: HTMLDivElement | undefined = $state();
 	let mapInstance: import('leaflet').Map | undefined;
 	let markerInstance: import('leaflet').Marker | undefined;
+	let radiusInstance: import('leaflet').Circle | undefined;
 	let L: typeof import('leaflet') | undefined;
 	let ready = $state(false);
 
@@ -45,6 +51,14 @@
 		}).addTo(mapInstance);
 
 		markerInstance = L.marker([lat, lon]).addTo(mapInstance);
+		radiusInstance = L.circle([lat, lon], {
+			radius: distance * 1000,
+			color: '#2563eb',
+			weight: 2,
+			opacity: 0.6,
+			fillColor: '#3b82f6',
+			fillOpacity: 0.1
+		}).addTo(mapInstance);
 		ready = true;
 	});
 
@@ -52,13 +66,20 @@
 		if (!ready || !mapInstance || !markerInstance) return;
 		const next: [number, number] = [lat, lon];
 		markerInstance.setLatLng(next);
+		radiusInstance?.setLatLng(next);
 		mapInstance.setView(next, zoom);
+	});
+
+	$effect(() => {
+		if (!ready || !radiusInstance) return;
+		radiusInstance.setRadius(distance * 1000);
 	});
 
 	onDestroy(() => {
 		mapInstance?.remove();
 		mapInstance = undefined;
 		markerInstance = undefined;
+		radiusInstance = undefined;
 	});
 </script>
 
@@ -66,5 +87,9 @@
 	bind:this={containerEl}
 	role="application"
 	aria-label={label}
-	class="h-[500px] w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-100"
-></div>
+	class="relative h-[500px] w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-100"
+>
+	<div class="absolute top-3 right-3 z-[1000]">
+		<DistanceControl value={distance} onChange={onDistanceChange} />
+	</div>
+</div>
